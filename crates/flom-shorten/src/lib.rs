@@ -1,0 +1,62 @@
+use flom_core::{FlomError, FlomResult};
+use reqwest::Client;
+use serde::Deserialize;
+use url::Url;
+
+#[derive(Debug, Clone)]
+pub struct ShortenClient {
+    client: Client,
+}
+
+impl ShortenClient {
+    pub fn new() -> Self {
+        let client = Client::builder()
+            .user_agent("flom/0.1")
+            .build()
+            .expect("failed to build http client");
+        Self { client }
+    }
+
+    pub async fn shorten(&self, input: &str) -> FlomResult<String> {
+        validate_url(input)?;
+        let response = self
+            .client
+            .get("https://is.gd/create.php")
+            .query(&[("format", "json"), ("url", input)])
+            .send()
+            .await
+            .map_err(|err| FlomError::Network(format!("shorten request failed: {err}")))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(FlomError::Api(format!(
+                "shorten error: status={status} body={body}"
+            )));
+        }
+
+        let payload = response
+            .json::<ShortenResponse>()
+            .await
+            .map_err(|err| FlomError::Parse(format!("shorten response parse failed: {err}")))?;
+
+        if let Some(error_message) = payload.errormessage {
+            return Err(FlomError::Api(error_message));
+        }
+
+        payload
+            .shorturl
+            .ok_or_else(|| FlomError::Api("shorten response missing shorturl".to_string()))
+    }
+}
+
+fn validate_url(url: &str) -> FlomResult<()> {
+    Url::parse(url).map_err(|err| FlomError::InvalidInput(format!("invalid url: {err}")))?;
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+struct ShortenResponse {
+    shorturl: Option<String>,
+    errormessage: Option<String>,
+}

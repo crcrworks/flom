@@ -1,0 +1,19 @@
+[package]
+name = "flom"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { workspace = true }
+console = { workspace = true }
+crossterm = { workspace = true }
+dialoguer = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+flom-core = { path = "../flom-core" }
+flom-config = { path = "../flom-config" }
+flom-music = { path = "../flom-music" }
+flom-shorten = { path = "../flom-shorten" }

@@ -1,0 +1,8 @@
+[package]
+name = "flom-url"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+flom-core = { path = "../flom-core" }
+url = { workspace = true }

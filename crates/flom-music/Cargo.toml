@@ -1,0 +1,14 @@
+[package]
+name = "flom-music"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+flom-core = { path = "../flom-core" }
+flom-config = { path = "../flom-config" }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
