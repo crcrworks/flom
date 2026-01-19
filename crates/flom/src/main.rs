@@ -1,13 +1,37 @@
 use std::fs;
 use std::io::{self, IsTerminal, Read};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use console::style;
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
-use flom_config::{load_config, resolve_default_target, resolve_odesli_key, resolve_simple_output};
-use flom_core::{ConversionResult, FlomError};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
+use flom_config::{
+    config_exists, load_config, open_in_editor, resolve_default_target, resolve_simple_output,
+    save_config, set_config_value,
+};
+use flom_core::{ConversionResult, FlomError, FlomResult};
 use flom_music::MusicConverter;
 use flom_shorten::ShortenClient;
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Manage configuration
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum ConfigAction {
+    /// Get a configuration value
+    Get { key: String },
+    /// Set a configuration value
+    Set { key: String, value: String },
+    /// List all configuration values
+    List,
+    /// Open config file in editor
+    Edit,
+}
 
 #[derive(Debug, Parser)]
 #[command(name = "flom")]
@@ -23,11 +47,22 @@ struct Cli {
     simple: bool,
     #[arg(value_name = "URL")]
     urls: Vec<String>,
+    #[command(subcommand)]
+    command: Option<Commands>,
 }
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+
+    // Handle config commands first
+    if let Some(Commands::Config { action }) = cli.command {
+        if let Err(err) = handle_config_command(action) {
+            eprintln!("{} {err}", style("Error:").red());
+            std::process::exit(1);
+        }
+        return;
+    }
 
     let mut config = match load_config() {
         Ok(config) => config,
@@ -112,34 +147,98 @@ fn parse_lines(content: &str) -> Vec<String> {
 }
 
 fn resolve_or_prompt_odesli_key(config: &mut flom_config::FlomConfigData) -> Option<String> {
-    if let Some(key) = resolve_odesli_key(config) {
-        return Some(key);
+    // Check environment variable first
+    if let Ok(value) = std::env::var("FLOM_ODESLI_KEY") {
+        if !value.trim().is_empty() {
+            return Some(value);
+        }
     }
 
+    // If config file exists, use its value (never prompt)
+    if config_exists().unwrap_or(false) {
+        return config.api.odesli_key.clone();
+    }
+
+    // Config file doesn't exist - first time setup
     let theme = ColorfulTheme::default();
+    println!(
+        "{} {}",
+        style("First-time setup:").bold().cyan(),
+        "Let's configure your flom settings"
+    );
+
     let input: String = Input::with_theme(&theme)
         .with_prompt("Odesli API key (optional, press Enter to skip)")
         .allow_empty(true)
         .interact_text()
         .unwrap_or_default();
 
-    if input.trim().is_empty() {
-        return None;
+    if !input.trim().is_empty() {
+        config.api.odesli_key = Some(input.clone());
     }
 
-    config.api.odesli_key = Some(input.clone());
-    if Confirm::with_theme(&theme)
-        .with_prompt("Save API key to ~/.flom/config.toml?")
-        .default(true)
-        .interact()
-        .unwrap_or(false)
-    {
-        if let Err(err) = flom_config::save_config(config) {
-            eprintln!("{} {err}", style("Warning:").yellow());
+    // Always create config file on first run
+    if let Err(err) = save_config(config) {
+        eprintln!("{} {err}", style("Warning:").yellow());
+    } else {
+        println!(
+            "{} Config file created at ~/.flom/config.toml",
+            style("✓").green()
+        );
+    }
+
+    config.api.odesli_key.clone()
+}
+
+fn handle_config_command(action: ConfigAction) -> FlomResult<()> {
+    match action {
+        ConfigAction::Get { key } => {
+            let config = load_config()?;
+            let value = get_nested_config_value(&config, &key);
+            match value {
+                Some(v) => println!("{} = {}", key, v),
+                None => println!("{} = <null>", key),
+            }
+            Ok(())
+        }
+        ConfigAction::Set { key, value } => {
+            set_config_value(&key, &value)?;
+            println!("{} Set {} = {}", style("✓").green(), key, value);
+            Ok(())
+        }
+        ConfigAction::List => {
+            let config = load_config()?;
+            println!("Current configuration:");
+            println!("\n[api]");
+            println!(
+                "odesli_key = {}",
+                config.api.odesli_key.as_deref().unwrap_or("<null>")
+            );
+            println!("\n[default]");
+            println!(
+                "target = {}",
+                config.default.target.as_deref().unwrap_or("<null>")
+            );
+            println!("\n[output]");
+            println!("simple = {}", config.output.simple.unwrap_or(false));
+            Ok(())
+        }
+        ConfigAction::Edit => {
+            open_in_editor()?;
+            Ok(())
         }
     }
+}
 
-    Some(input)
+fn get_nested_config_value(config: &flom_config::FlomConfigData, key_path: &str) -> Option<String> {
+    let parts: Vec<&str> = key_path.split('.').collect();
+
+    match parts.as_slice() {
+        ["api", "odesli_key"] => config.api.odesli_key.clone(),
+        ["default", "target"] => config.default.target.clone(),
+        ["output", "simple"] => config.output.simple.map(|b| b.to_string()),
+        _ => None,
+    }
 }
 
 async fn process_url(
