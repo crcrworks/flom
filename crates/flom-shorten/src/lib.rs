@@ -60,3 +60,31 @@ struct ShortenResponse {
     shorturl: Option<String>,
     errormessage: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_url_with_valid() {
+        assert!(validate_url("https://example.com").is_ok());
+        assert!(validate_url("http://music.example.com/track/123").is_ok());
+    }
+
+    #[test]
+    fn test_validate_url_with_invalid() {
+        let result = validate_url("not-a-url");
+        assert!(result.is_err());
+        match result {
+            Err(FlomError::InvalidInput(msg)) => assert!(msg.contains("invalid url")),
+            _ => panic!("Expected InvalidInput error"),
+        }
+
+        let result = validate_url("://no-scheme");
+        assert!(result.is_err());
+        match result {
+            Err(FlomError::InvalidInput(msg)) => assert!(msg.contains("invalid url")),
+            _ => panic!("Expected InvalidInput error"),
+        }
+    }
+}

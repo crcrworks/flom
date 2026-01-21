@@ -88,3 +88,26 @@ pub struct OdesliEntity {
     #[serde(rename = "apiProvider")]
     pub api_provider: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use url::Url;
+
+    #[test]
+    fn test_validate_url_with_valid() {
+        let result = Url::parse("https://example.com");
+        assert!(result.is_ok(), "Valid https URL should parse successfully");
+
+        let result = Url::parse("http://music.example.com/track/123");
+        assert!(result.is_ok(), "Valid http URL should parse successfully");
+    }
+
+    #[test]
+    fn test_validate_url_with_invalid() {
+        let result = Url::parse("not-a-url");
+        assert!(result.is_err(), "Invalid URL should fail to parse");
+
+        let result = Url::parse("://no-scheme");
+        assert!(result.is_err(), "URL without scheme should fail to parse");
+    }
+}

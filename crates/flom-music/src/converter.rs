@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use flom_config::{FlomConfigData, resolve_user_country};
 use flom_core::{ConversionResult, FlomError, FlomResult, MediaInfo};
 use reqwest::Client;
 use url::Url;
@@ -18,13 +19,14 @@ pub struct MusicConverter {
 }
 
 impl MusicConverter {
-    pub fn new(api_key: Option<String>) -> Self {
+    pub fn new(api_key: Option<String>, config: &FlomConfigData) -> Self {
         let client = Client::builder()
             .user_agent("flom/0.1")
             .build()
             .expect("failed to build http client");
+        let user_country = resolve_user_country(config);
         Self {
-            client: OdesliClient::new(client, api_key, "US"),
+            client: OdesliClient::new(client, api_key, user_country),
         }
     }
 
@@ -132,7 +134,7 @@ fn infer_source_platform(
 
 #[cfg(test)]
 mod tests {
-    use super::MusicConverter;
+    use super::*;
 
     #[test]
     fn normalize_target_maps_common_inputs() {
@@ -148,5 +150,37 @@ mod tests {
             MusicConverter::normalize_target("youtube_music"),
             Some("youtubeMusic".to_string())
         );
+    }
+
+    #[test]
+    fn test_validate_url_https() {
+        assert!(validate_url("https://example.com").is_ok());
+        assert!(validate_url("https://spotify.com/track/123").is_ok());
+    }
+
+    #[test]
+    fn test_validate_url_http() {
+        assert!(validate_url("http://example.com").is_ok());
+        assert!(validate_url("http://music.example.com/album/456").is_ok());
+    }
+
+    #[test]
+    fn test_validate_url_invalid() {
+        let result = validate_url("not-a-url");
+        assert!(result.is_err());
+        match result {
+            Err(FlomError::InvalidInput(msg)) => assert!(msg.contains("invalid url")),
+            _ => panic!("Expected InvalidInput error"),
+        }
+    }
+
+    #[test]
+    fn test_validate_url_no_scheme() {
+        let result = validate_url("://no-scheme");
+        assert!(result.is_err());
+        match result {
+            Err(FlomError::InvalidInput(msg)) => assert!(msg.contains("invalid url")),
+            _ => panic!("Expected InvalidInput error"),
+        }
     }
 }
