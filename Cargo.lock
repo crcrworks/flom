@@ -355,6 +355,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
+ "url",
 ]
 
 [[package]]
@@ -380,14 +381,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
- "url",
-]
-
-[[package]]
-name = "flom-url"
-version = "0.1.0"
-dependencies = [
- "flom-core",
+ "tokio",
  "url",
 ]
 
