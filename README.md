@@ -1,12 +1,37 @@
 # Flom
 
-Universal converter for music URLs and link shortening.
+Universal converter for anything. / ありとあらゆるものを変換できるツール。
 
-## Features
+## Philosophy / 思想
 
-- Convert music URLs between streaming platforms (Spotify, Apple Music, YouTube Music, etc.)
-- Shorten URLs using is.gd
-- Interactive CLI with configuration support
+Flom is designed as an extensible converter framework. The vision is to handle any form of conversion through modular components.
+
+Flomは拡張可能なコンバーターフレームワークとして設計されています。モジュール化されたコンポーネントを通じて、あらゆる形式の変換を扱うことを目指しています。
+
+**ありとあらゆるものを変換できるツール**
+
+## Features / 機能
+
+- Extensible converter framework / 拡張可能なコンバーターフレームワーク
+- Music URL conversion / 音楽URL変換 (Spotify, Apple Music, YouTube Music, etc.)
+- URL shortening / URL短縮 (converter module example)
+- Interactive CLI with configuration support / 対話的なCLIと設定サポート
+
+## Architecture / アーキテクチャ
+
+Flom is organized as modular workspace crates. Each crate handles a specific aspect of the converter framework.
+
+Flomはワークスペートクレートとしてモジュール化されています。各クレートはコンバーターフレームワークの特定の側面を担当します。
+
+### Core Modules / コアモジュール
+
+- `flom-core`: Core utilities and types (エラー型、結果型、URL検証)
+- `flom-config`: Configuration management (設定管理)
+
+### Converter Modules / コンバータモジュール
+
+- `flom-music`: Music URL converter module (音楽URLコンバータモジュール)
+- `flom-shorten`: URL shortening converter module (URL短縮コンバータモジュール)
 
 ## Installation
 
@@ -20,9 +45,12 @@ Or build from source:
 cargo build --release
 ```
 
-## Usage
+## Usage / 使用方法
 
-### Music Conversion
+Current implementations include the following examples:
+現在の実装には以下の例が含まれます：
+
+### Example: Music URL Conversion / 例: 音楽URL変換
 
 Convert a Spotify link to Apple Music:
 
@@ -36,13 +64,13 @@ Convert without specifying target (interactive selection):
 flom "https://music.apple.com/us/album/example"
 ```
 
-### URL Shortening
+### Example: URL Shortening / 例: URL短縮
 
 ```bash
 flom "https://example.com/very/long/url" --shorten
 ```
 
-### Configuration
+### Configuration / 設定
 
 Create/edit config file:
 
@@ -66,7 +94,7 @@ user_country = "US"
 simple = false
 ```
 
-### Environment Variables
+### Environment Variables / 環境変数
 
 - `FLOM_ODESLI_KEY`: Odesli API key (overrides config file)
 - `FLOM_DEFAULT_TARGET`: Default target platform (overrides config file)
