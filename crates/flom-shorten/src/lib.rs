@@ -1,7 +1,6 @@
-use flom_core::{FlomError, FlomResult};
+use flom_core::{FlomError, FlomResult, validate_url};
 use reqwest::Client;
 use serde::Deserialize;
-use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct ShortenClient {
@@ -48,11 +47,6 @@ impl ShortenClient {
             .shorturl
             .ok_or_else(|| FlomError::Api("shorten response missing shorturl".to_string()))
     }
-}
-
-fn validate_url(url: &str) -> FlomResult<()> {
-    Url::parse(url).map_err(|err| FlomError::InvalidInput(format!("invalid url: {err}")))?;
-    Ok(())
 }
 
 #[derive(Debug, Deserialize)]

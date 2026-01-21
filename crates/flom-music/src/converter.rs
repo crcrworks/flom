@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use flom_config::{FlomConfigData, resolve_user_country};
-use flom_core::{ConversionResult, FlomError, FlomResult, MediaInfo};
+use flom_core::{ConversionResult, FlomError, FlomResult, MediaInfo, validate_url};
 use reqwest::Client;
-use url::Url;
 
 use crate::api::odesli::{OdesliClient, OdesliResponse};
 
@@ -93,11 +92,6 @@ impl MusicConverter {
             warning: None,
         })
     }
-}
-
-fn validate_url(url: &str) -> FlomResult<()> {
-    Url::parse(url).map_err(|err| FlomError::InvalidInput(format!("invalid url: {err}")))?;
-    Ok(())
 }
 
 fn display_name(key: &str) -> &str {
