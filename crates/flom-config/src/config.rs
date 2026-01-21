@@ -8,11 +8,15 @@ pub struct ApiConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DefaultConfig {
     pub target: Option<String>,
+    pub user_country: Option<String>,
 }
 
 impl Default for DefaultConfig {
     fn default() -> Self {
-        Self { target: None }
+        Self {
+            target: None,
+            user_country: None,
+        }
     }
 }
 

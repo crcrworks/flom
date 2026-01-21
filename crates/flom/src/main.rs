@@ -88,7 +88,7 @@ async fn main() {
     }
 
     let api_key = resolve_or_prompt_odesli_key(&mut config);
-    let converter = MusicConverter::new(api_key);
+    let converter = MusicConverter::new(api_key, &config);
 
     let simple = cli.simple || resolve_simple_output(&config).unwrap_or(false);
     let default_target = resolve_default_target(&config);
@@ -219,6 +219,10 @@ fn handle_config_command(action: ConfigAction) -> FlomResult<()> {
                 "target = {}",
                 config.default.target.as_deref().unwrap_or("<null>")
             );
+            println!(
+                "user_country = {}",
+                config.default.user_country.as_deref().unwrap_or("<null>")
+            );
             println!("\n[output]");
             println!("simple = {}", config.output.simple.unwrap_or(false));
             Ok(())
@@ -236,6 +240,7 @@ fn get_nested_config_value(config: &flom_config::FlomConfigData, key_path: &str)
     match parts.as_slice() {
         ["api", "odesli_key"] => config.api.odesli_key.clone(),
         ["default", "target"] => config.default.target.clone(),
+        ["default", "user_country"] => config.default.user_country.clone(),
         ["output", "simple"] => config.output.simple.map(|b| b.to_string()),
         _ => None,
     }

@@ -64,6 +64,20 @@ pub fn resolve_default_target(config: &FlomConfig) -> Option<String> {
     config.default.target.clone()
 }
 
+pub fn resolve_user_country(config: &FlomConfig) -> String {
+    if let Ok(value) = env::var("FLOM_USER_COUNTRY") {
+        let normalized = value.trim();
+        if !normalized.is_empty() {
+            return normalized.to_string();
+        }
+    }
+    config
+        .default
+        .user_country
+        .clone()
+        .unwrap_or_else(|| "US".to_string())
+}
+
 pub fn resolve_simple_output(config: &FlomConfig) -> Option<bool> {
     if let Ok(value) = env::var("FLOM_OUTPUT_SIMPLE") {
         let normalized = value.to_lowercase();
