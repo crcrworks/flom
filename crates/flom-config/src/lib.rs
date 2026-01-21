@@ -10,6 +10,9 @@ use flom_core::{FlomError, FlomResult};
 
 pub use config::{ApiConfig, DefaultConfig, FlomConfig as FlomConfigData, OutputConfig};
 
+#[cfg(test)]
+pub(crate) static TEST_ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn config_path() -> FlomResult<PathBuf> {
     let home = dirs::home_dir()
         .ok_or_else(|| FlomError::Config("home directory not found".to_string()))?;
@@ -161,4 +164,73 @@ pub fn open_in_editor() -> FlomResult<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_load_valid() {
+        let toml_content = r#"
+            [api]
+            odesli_key = "test-key"
+
+            [default]
+            target = "spotify"
+            user_country = "US"
+
+            [output]
+            simple = false
+        "#;
+        let config = toml::from_str::<FlomConfig>(toml_content);
+        assert!(config.is_ok());
+        let config = config.unwrap();
+        assert_eq!(config.api.odesli_key, Some("test-key".to_string()));
+        assert_eq!(config.default.target, Some("spotify".to_string()));
+        assert_eq!(config.default.user_country, Some("US".to_string()));
+        assert_eq!(config.output.simple, Some(false));
+    }
+
+    #[test]
+    fn test_config_load_invalid() {
+        let invalid_toml = "invalid [toml content";
+        let result = toml::from_str::<FlomConfig>(invalid_toml);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_resolve_default_target_env() {
+        let _lock = TEST_ENV_MUTEX.lock().unwrap();
+        let config = FlomConfig::default();
+        unsafe {
+            env::set_var("FLOM_DEFAULT_TARGET", "spotify");
+        }
+        let result = resolve_default_target(&config);
+        assert_eq!(result, Some("spotify".to_string()));
+        unsafe {
+            env::remove_var("FLOM_DEFAULT_TARGET");
+        }
+    }
+
+    #[test]
+    fn test_resolve_user_country_env() {
+        let _lock = TEST_ENV_MUTEX.lock().unwrap();
+        let config = FlomConfig::default();
+        unsafe {
+            env::set_var("FLOM_USER_COUNTRY", "JP");
+        }
+        let result = resolve_user_country(&config);
+        assert_eq!(result, "JP");
+        unsafe {
+            env::remove_var("FLOM_USER_COUNTRY");
+        }
+    }
+
+    #[test]
+    fn test_resolve_user_country_default() {
+        let config = FlomConfig::default();
+        let result = resolve_user_country(&config);
+        assert_eq!(result, "US");
+    }
 }

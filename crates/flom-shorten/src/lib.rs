@@ -81,4 +81,30 @@ mod tests {
             _ => panic!("Expected InvalidInput error"),
         }
     }
+
+    #[test]
+    fn test_shorten_validate_url() {
+        let client = ShortenClient::new();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let result = rt.block_on(async { client.shorten("invalid-url-without-scheme").await });
+
+        assert!(result.is_err());
+        match result {
+            Err(FlomError::InvalidInput(msg)) => assert!(msg.contains("invalid url")),
+            _ => panic!("Expected InvalidInput error from validate_url, not Network/Api error"),
+        }
+    }
+
+    #[test]
+    fn test_shorten_error_handling() {
+        let client = ShortenClient::new();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let result = rt.block_on(async { client.shorten("not-a-url").await });
+        assert!(matches!(result, Err(FlomError::InvalidInput(_))));
+
+        let result = rt.block_on(async { client.shorten("https://").await });
+        assert!(result.is_err());
+    }
 }

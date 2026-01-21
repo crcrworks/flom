@@ -144,6 +144,217 @@ mod tests {
             MusicConverter::normalize_target("youtube_music"),
             Some("youtubeMusic".to_string())
         );
+        assert_eq!(
+            MusicConverter::normalize_target("  AMAZON_MUSIC  "),
+            Some("amazonMusic".to_string())
+        );
+        assert_eq!(
+            MusicConverter::normalize_target("YouTubeMusic"),
+            Some("youtubeMusic".to_string())
+        );
+    }
+
+    #[test]
+    fn test_normalize_target_undefined() {
+        assert_eq!(MusicConverter::normalize_target("unknown"), None);
+        assert_eq!(MusicConverter::normalize_target("not-a-platform"), None);
+        assert_eq!(MusicConverter::normalize_target(""), None);
+    }
+
+    #[test]
+    fn test_display_name_all_platforms() {
+        // Test through targets_from_response
+        let mut response = OdesliResponse {
+            entity_unique_id: "test-id".to_string(),
+            page_url: "https://example.com".to_string(),
+            links_by_platform: HashMap::new(),
+            entities_by_unique_id: HashMap::new(),
+        };
+
+        response.links_by_platform.insert(
+            "appleMusic".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id1".to_string(),
+                url: "https://music.apple.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "itunes".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id2".to_string(),
+                url: "https://itunes.apple.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "spotify".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id3".to_string(),
+                url: "https://spotify.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "youtube".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id4".to_string(),
+                url: "https://youtube.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "youtubeMusic".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id5".to_string(),
+                url: "https://music.youtube.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "tidal".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id6".to_string(),
+                url: "https://tidal.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "deezer".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id7".to_string(),
+                url: "https://deezer.com".to_string(),
+            },
+        );
+        response.links_by_platform.insert(
+            "amazonMusic".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "id8".to_string(),
+                url: "https://music.amazon.com".to_string(),
+            },
+        );
+
+        let targets = MusicConverter::targets_from_response(&response);
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "appleMusic" && t.label == "Apple Music")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "itunes" && t.label == "iTunes")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "spotify" && t.label == "Spotify")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "youtube" && t.label == "YouTube")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "youtubeMusic" && t.label == "YouTube Music")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "tidal" && t.label == "Tidal")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "deezer" && t.label == "Deezer")
+        );
+        assert!(
+            targets
+                .iter()
+                .any(|t| t.key == "amazonMusic" && t.label == "Amazon Music")
+        );
+    }
+
+    #[test]
+    fn test_entity_to_media_full() {
+        // Test through convert_from_response
+        let mut response = OdesliResponse {
+            entity_unique_id: "source-id".to_string(),
+            page_url: "https://example.com".to_string(),
+            links_by_platform: HashMap::new(),
+            entities_by_unique_id: HashMap::new(),
+        };
+
+        response.entities_by_unique_id.insert(
+            "source-id".to_string(),
+            crate::api::odesli::OdesliEntity {
+                id: Some("id1".to_string()),
+                title: Some("Test Song".to_string()),
+                artist_name: Some("Test Artist".to_string()),
+                album_name: Some("Test Album".to_string()),
+                api_provider: Some("spotify".to_string()),
+            },
+        );
+
+        response.links_by_platform.insert(
+            "spotify".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "source-id".to_string(),
+                url: "https://spotify.com".to_string(),
+            },
+        );
+
+        let result =
+            MusicConverter::convert_from_response(&response, "https://spotify.com", "spotify");
+        assert!(result.is_ok());
+        let conversion_result = result.unwrap();
+        assert_eq!(
+            conversion_result.source_info,
+            Some(MediaInfo {
+                title: Some("Test Song".to_string()),
+                artist: Some("Test Artist".to_string()),
+                album: Some("Test Album".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn test_entity_to_media_partial() {
+        // Test through convert_from_response with partial entity
+        let mut response = OdesliResponse {
+            entity_unique_id: "source-id".to_string(),
+            page_url: "https://example.com".to_string(),
+            links_by_platform: HashMap::new(),
+            entities_by_unique_id: HashMap::new(),
+        };
+
+        response.entities_by_unique_id.insert(
+            "source-id".to_string(),
+            crate::api::odesli::OdesliEntity {
+                id: None,
+                title: Some("Test Song".to_string()),
+                artist_name: Some("Test Artist".to_string()),
+                album_name: None,
+                api_provider: Some("spotify".to_string()),
+            },
+        );
+
+        response.links_by_platform.insert(
+            "spotify".to_string(),
+            crate::api::odesli::OdesliLink {
+                entity_unique_id: "source-id".to_string(),
+                url: "https://spotify.com".to_string(),
+            },
+        );
+
+        let result =
+            MusicConverter::convert_from_response(&response, "https://spotify.com", "spotify");
+        assert!(result.is_ok());
+        let conversion_result = result.unwrap();
+        assert_eq!(
+            conversion_result.source_info,
+            Some(MediaInfo {
+                title: Some("Test Song".to_string()),
+                artist: Some("Test Artist".to_string()),
+                album: None,
+            })
+        );
     }
 
     #[test]
