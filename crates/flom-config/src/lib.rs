@@ -50,20 +50,18 @@ pub fn config_exists() -> FlomResult<bool> {
 }
 
 pub fn resolve_odesli_key(config: &FlomConfig) -> Option<String> {
-    if let Ok(value) = env::var("FLOM_ODESLI_KEY") {
-        if !value.trim().is_empty() {
+    if let Ok(value) = env::var("FLOM_ODESLI_KEY")
+        && !value.trim().is_empty() {
             return Some(value);
         }
-    }
     config.api.odesli_key.clone()
 }
 
 pub fn resolve_default_target(config: &FlomConfig) -> Option<String> {
-    if let Ok(value) = env::var("FLOM_DEFAULT_TARGET") {
-        if !value.trim().is_empty() {
+    if let Ok(value) = env::var("FLOM_DEFAULT_TARGET")
+        && !value.trim().is_empty() {
             return Some(value);
         }
-    }
     config.default.target.clone()
 }
 

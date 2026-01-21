@@ -7,6 +7,12 @@ pub struct ShortenClient {
     client: Client,
 }
 
+impl Default for ShortenClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ShortenClient {
     pub fn new() -> Self {
         let client = Client::builder()

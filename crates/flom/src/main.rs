@@ -148,11 +148,10 @@ fn parse_lines(content: &str) -> Vec<String> {
 
 fn resolve_or_prompt_odesli_key(config: &mut flom_config::FlomConfigData) -> Option<String> {
     // Check environment variable first
-    if let Ok(value) = std::env::var("FLOM_ODESLI_KEY") {
-        if !value.trim().is_empty() {
+    if let Ok(value) = std::env::var("FLOM_ODESLI_KEY")
+        && !value.trim().is_empty() {
             return Some(value);
         }
-    }
 
     // If config file exists, use its value (never prompt)
     if config_exists().unwrap_or(false) {
@@ -162,9 +161,8 @@ fn resolve_or_prompt_odesli_key(config: &mut flom_config::FlomConfigData) -> Opt
     // Config file doesn't exist - first time setup
     let theme = ColorfulTheme::default();
     println!(
-        "{} {}",
-        style("First-time setup:").bold().cyan(),
-        "Let's configure your flom settings"
+        "{} Let's configure your flom settings",
+        style("First-time setup:").bold().cyan()
     );
 
     let input: String = Input::with_theme(&theme)

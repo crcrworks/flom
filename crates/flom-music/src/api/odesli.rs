@@ -27,11 +27,10 @@ impl OdesliClient {
             ("url", url.to_string()),
             ("userCountry", self.user_country.clone()),
         ];
-        if let Some(key) = &self.api_key {
-            if !key.trim().is_empty() {
+        if let Some(key) = &self.api_key
+            && !key.trim().is_empty() {
                 params.push(("key", key.clone()));
             }
-        }
 
         let response = self
             .client
